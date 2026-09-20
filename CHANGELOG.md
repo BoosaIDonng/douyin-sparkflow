@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-18
+
+- Fixed the send console's "待核验" (mark unconfirmed) button, which never applied: it is only rendered for strongly confirmed targets, but the reset helper refused exactly those records unless forced. The route now forces the reset, so a suspicious "success" can actually be pushed back into the retry queue.
+- Fixed scheduled-run logs being invisible in the Web console. Cron wrote to container-local `/var/log/douyin-sparkflow.log`, while the scheduler container owned that file and the web container read its own empty copy. The task log now lives on the `/app/logs` volume shared by the web, scheduler and task services, and the legacy setting is migrated automatically.
+- Required page evidence in addition to the server receipt before a send is recorded as strongly confirmed. Douyin returns 2xx responses whose body is not always parseable, so a receipt alone previously proved only that the endpoint answered. A send without a confirmed new own-message bubble is now queued as retryable `send_unconfirmed` instead of counting as success.
+- Removed the unreachable `/ops/reset-today-unconfirmed` route, which no template referenced and which skipped every strongly confirmed record, making it a no-op even if it had been reachable.
+- Removed the unused `SPARKFLOW_MANUAL_FORCE_ALL` flag, which was written by the Web console but read nowhere.
+
 ## 2026-08-27
 
 - Changed the project license for project-owned code from MIT License to PolyForm Noncommercial License 1.0.0. Future versions are source-available for noncommercial use only; prior versions remain governed by their applicable license terms.

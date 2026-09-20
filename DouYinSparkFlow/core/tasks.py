@@ -990,7 +990,11 @@ def classify_browser_failure(stage, exc):
         return "chat_input_not_found"
     if "could not find the friend list scroll container" in lowered:
         return "friend_list_container_missing"
-    if "chat input still contains" in lowered or "visible message count did not increase" in lowered:
+    if (
+        "chat input still contains" in lowered
+        or "visible message count did not increase" in lowered
+        or "no new own message bubble" in lowered
+    ):
         return "send_unconfirmed"
     if "missing targets" in lowered:
         return "friend_not_found"
@@ -2118,6 +2122,28 @@ def _persist_friend_index(user, friend_records, scanned_at, *, scan_complete, mi
     )
 
 
+def _send_confirmation_error(im_summary, sent_ok, server_ok, detail):
+    """Return why a send must not be recorded as strongly confirmed, else "".
+
+    A server receipt only proves the endpoint answered. Douyin returns 2xx
+    responses whose body cannot always be parsed, so the page must also show
+    the new own-message bubble before the send counts as confirmed.
+    """
+    if im_summary.get("enabled"):
+        if not im_summary.get("send_request_seen"):
+            return f"server send request was not observed; {detail}"
+        if not im_summary.get("send_response_seen"):
+            return f"server send response was not observed; {detail}"
+        if not server_ok:
+            return f"server send receipt rejected; {detail}"
+        if not sent_ok:
+            return f"send receipt accepted but no new own message bubble was confirmed; {detail}"
+        return ""
+    if not sent_ok:
+        return detail
+    return ""
+
+
 def _persist_browser_send_failure(user, target_name, message, category, reason, attempted_at, server_receipt=None):
     accounts = get_userData(force_reload=True)
     matched_account = _find_matching_account(accounts, user)
@@ -2604,15 +2630,9 @@ async def _do_user_task_locked(browser, user, send_strategy, profile_config, fri
                     )
                     await save_debug_artifacts(page, account_name, target_name, "after-send")
 
-                    if im_summary.get("enabled"):
-                        if not im_summary.get("send_request_seen"):
-                            raise RuntimeError(f"server send request was not observed; {detail}")
-                        if not im_summary.get("send_response_seen"):
-                            raise RuntimeError(f"server send response was not observed; {detail}")
-                        if not server_ok:
-                            raise RuntimeError(f"server send receipt rejected; {detail}")
-                    elif not sent_ok:
-                        raise RuntimeError(detail)
+                    confirmation_error = _send_confirmation_error(im_summary, sent_ok, server_ok, detail)
+                    if confirmation_error:
+                        raise RuntimeError(confirmation_error)
 
                     logger.info("Message send confirmed for %s/%s by server receipt: %s", account_name, target_name, detail)
                     _persist_browser_send_success(

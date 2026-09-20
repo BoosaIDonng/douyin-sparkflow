@@ -1,9 +1,10 @@
-﻿import asyncio
+import asyncio
 import errno
 import os
 import tempfile
 import time
 import unittest
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -307,6 +308,39 @@ class WebUiSafetyTests(unittest.TestCase):
             self.assertIn("20 18 * * *", text)
             self.assertIn("run_scheduled_task.sh", text)
             self.assertNotIn("docker exec", text)
+            # The web console reads this file, so scheduled runs must write to a
+            # path that is mounted into every container, not container-local /var/log.
+            self.assertIn(">> /app/logs/scheduled-task.log", text)
+            self.assertNotIn("/var/log/douyin-sparkflow.log", text)
+
+    def test_task_log_file_defaults_to_the_shared_container_path(self):
+        from utils.config import DEFAULT_TASK_LOG_FILE, DEFAULT_APP_SETTINGS
+
+        self.assertEqual("/app/logs/scheduled-task.log", DEFAULT_TASK_LOG_FILE)
+        self.assertEqual(DEFAULT_TASK_LOG_FILE, DEFAULT_APP_SETTINGS["ops_log_file"])
+
+    def test_legacy_task_log_setting_migrates_to_shared_path(self):
+        from utils import config as config_module
+
+        legacy = {"ops_log_file": "/var/log/douyin-sparkflow.log"}
+        config_module._migrate_legacy_task_log_file(legacy)
+        self.assertEqual(config_module.DEFAULT_TASK_LOG_FILE, legacy["ops_log_file"])
+
+        custom = {"ops_log_file": "/custom/task.log"}
+        config_module._migrate_legacy_task_log_file(custom)
+        self.assertEqual("/custom/task.log", custom["ops_log_file"])
+
+    def test_log_tail_and_manual_runs_use_the_shared_task_log(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_path = Path(temp_dir) / "scheduled-task.log"
+            log_path.write_text("line-1\nline-2\nline-3\n", encoding="utf-8")
+            with patch.object(ops, "task_log_file", return_value=str(log_path)):
+                self.assertEqual("line-2\nline-3", ops.read_log_tail(2))
+                with patch.object(ops, "run_background_command", return_value=123) as run:
+                    pid = ops.run_task_now(unsent_only=True)
+
+        self.assertEqual(123, pid)
+        self.assertEqual(log_path, run.call_args[0][1])
 
     def test_overview_api_requires_authentication_and_disables_cache(self):
         client = TestClient(app_module.app)
@@ -359,6 +393,58 @@ class WebUiSafetyTests(unittest.TestCase):
         self.assertNotIn("server_password", dashboard)
         self.assertNotIn("server_username", dashboard)
         self.assertNotIn("server_host", dashboard)
+
+    def test_mark_unconfirmed_button_actually_resets_a_strong_confirmation(self):
+        """The button is only rendered for strong records, so it must force the reset."""
+        today = datetime.now(app_module._schedule_timezone()).isoformat(timespec="seconds")
+        account = {
+            "username": "demo",
+            "unique_id": "1",
+            "targets": ["friend"],
+            "message_history": {
+                "friend": {
+                    "message": "hi",
+                    "sentAt": today,
+                    "status": "confirmed",
+                    "confirmationLevel": "strong",
+                    "confirmationSource": "cdp_message_send_receipt",
+                    "needsVerification": False,
+                }
+            },
+        }
+        client = TestClient(app_module.app)
+        with (
+            patch.object(app_module, "current_user", return_value="admin"),
+            patch.object(
+                app_module,
+                "current_principal",
+                return_value={"username": "admin", "role": "admin", "account_refs": [], "enabled": True},
+            ),
+            patch.object(app_module, "validate_csrf", return_value=True),
+            patch.object(app_module, "get_userData", return_value=[account]),
+            patch.object(app_module, "ensure_account_refs", side_effect=lambda data=None: (data, [])),
+            patch.object(app_module, "account_by_unique_id", return_value=account),
+            patch.object(app_module, "can_access_account", return_value=True),
+            patch.object(app_module, "save_userData") as save,
+        ):
+            response = client.post(
+                "/accounts/1/mark-target-unconfirmed",
+                data={"csrf_token": "t", "target": "friend"},
+                follow_redirects=False,
+            )
+
+        self.assertEqual(303, response.status_code)
+        entry = account["message_history"]["friend"]
+        self.assertEqual("unconfirmed", entry["status"])
+        self.assertTrue(entry["needsVerification"])
+        self.assertIn("friend", account["failure_queue"])
+        save.assert_called_once()
+
+    def test_reset_today_unconfirmed_route_is_gone(self):
+        """The dead batch route was unreachable and must not linger as a hidden endpoint."""
+        source = (Path(app_module.__file__)).read_text(encoding="utf-8")
+        self.assertNotIn("/ops/reset-today-unconfirmed", source)
+        self.assertNotIn("/ops/reset-today-confirmed", source)
 
 
 if __name__ == "__main__":

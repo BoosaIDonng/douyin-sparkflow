@@ -13,7 +13,14 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from core.send_state import history_entry_is_strong_confirmed_today, parse_sent_at
-from utils.config import get_app_settings, get_config, get_userData, repo_root, save_config
+from utils.config import (
+    DEFAULT_TASK_LOG_FILE,
+    get_app_settings,
+    get_config,
+    get_userData,
+    repo_root,
+    save_config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -353,7 +360,12 @@ def get_task_container_rows():
         return []
 
 
-def run_task_now(*, unsent_only=False, failed_only=False, force_all=False, account_refs=None):
+def task_log_file():
+    """Path of the task log, shared by the web, scheduler and task containers."""
+    return str(get_app_settings().get("ops_log_file") or DEFAULT_TASK_LOG_FILE)
+
+
+def run_task_now(*, unsent_only=False, failed_only=False, account_refs=None):
     try:
         lock_status = task_run_lock_status()
         if lock_status.get("running"):
@@ -364,7 +376,7 @@ def run_task_now(*, unsent_only=False, failed_only=False, force_all=False, accou
             )
             return TASK_ALREADY_RUNNING
 
-        log_file = Path(get_app_settings().get("ops_log_file") or "/var/log/douyin-sparkflow.log")
+        log_file = Path(task_log_file())
         command, cwd = build_task_run_spec()
         run_env = {
             "SPARKFLOW_MANUAL_RUN": "1",
@@ -372,9 +384,7 @@ def run_task_now(*, unsent_only=False, failed_only=False, force_all=False, accou
         }
         if account_refs is not None:
             run_env["SPARKFLOW_ACCOUNT_REFS"] = ",".join(sorted({str(ref).strip() for ref in account_refs if str(ref).strip()}))
-        if force_all:
-            run_env["SPARKFLOW_MANUAL_FORCE_ALL"] = "1"
-        elif failed_only:
+        if failed_only:
             run_env["SPARKFLOW_MANUAL_FAILED_ONLY"] = "1"
         elif unsent_only:
             run_env["SPARKFLOW_MANUAL_UNSENT_ONLY"] = "1"
@@ -428,7 +438,7 @@ def restart_proxy():
 
 
 def read_log_tail(lines=200):
-    log_path = Path(get_app_settings().get("ops_log_file") or "/var/log/douyin-sparkflow.log")
+    log_path = Path(task_log_file())
     if not log_path.exists():
         return ""
     content = log_path.read_text(encoding="utf-8", errors="replace").splitlines()
@@ -499,6 +509,7 @@ def replace_douyin_cron_schedule(crontab_text, time_string):
     schedule = parse_schedule_string(time_string)
     scheduled_command = build_scheduled_task_command()
     fallback_command = build_unsent_fallback_task_command()
+    log_redirect = f">> {task_log_file()} 2>&1"
     updated = []
 
     for raw_line in crontab_text.splitlines():
@@ -510,20 +521,20 @@ def replace_douyin_cron_schedule(crontab_text, time_string):
     if schedule["mode"] == "window":
         updated.append(
             f"*/{schedule['scheduleIntervalMinutes']} {schedule['startHour']}-{schedule['endHour'] - 1} * * * "
-            f"{scheduled_command} >> /var/log/douyin-sparkflow.log 2>&1"
+            f"{scheduled_command} {log_redirect}"
         )
         updated.append(
             f"0 {schedule['endHour']} * * * "
-            f"{scheduled_command} >> /var/log/douyin-sparkflow.log 2>&1"
+            f"{scheduled_command} {log_redirect}"
         )
         updated.append(
             f"{schedule['scheduleIntervalMinutes']} {schedule['endHour']} * * * "
-            f"{fallback_command} >> /var/log/douyin-sparkflow.log 2>&1"
+            f"{fallback_command} {log_redirect}"
         )
     else:
         updated.append(
             f"{schedule['minute']} {schedule['hour']} * * * "
-            f"{scheduled_command} >> /var/log/douyin-sparkflow.log 2>&1"
+            f"{scheduled_command} {log_redirect}"
         )
 
     normalized = "\n".join(line for line in updated if line.strip())

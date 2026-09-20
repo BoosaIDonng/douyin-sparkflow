@@ -127,6 +127,50 @@ class SendStateTests(unittest.TestCase):
 
         self.assertEqual(["confirmed", "pending"], prepared[0]["targets"])
 
+    def test_receipt_alone_is_not_enough_when_the_page_shows_no_new_bubble(self):
+        """A 2xx receipt proves the endpoint answered, not that the message landed.
+
+        Douyin returns 2xx bodies that cannot always be parsed, so a missing
+        own-message bubble must keep the send out of the strongly confirmed state.
+        """
+        enabled = {"enabled": True, "send_request_seen": True, "send_response_seen": True}
+
+        error = tasks._send_confirmation_error(enabled, False, True, "detail")
+        self.assertIn("no new own message bubble", error)
+
+        self.assertEqual("", tasks._send_confirmation_error(enabled, True, True, "detail"))
+
+        self.assertIn(
+            "receipt rejected",
+            tasks._send_confirmation_error(enabled, True, False, "detail"),
+        )
+        self.assertIn(
+            "request was not observed",
+            tasks._send_confirmation_error(
+                {"enabled": True, "send_request_seen": False, "send_response_seen": True},
+                True,
+                True,
+                "detail",
+            ),
+        )
+
+    def test_observer_disabled_still_requires_dom_evidence(self):
+        self.assertEqual("", tasks._send_confirmation_error({"enabled": False}, True, False, "detail"))
+        self.assertEqual("detail", tasks._send_confirmation_error({"enabled": False}, False, False, "detail"))
+
+    def test_missing_bubble_is_retryable_not_an_account_level_pause(self):
+        """An unconfirmed bubble must queue the target for retry, not pause the account."""
+        error = tasks._send_confirmation_error(
+            {"enabled": True, "send_request_seen": True, "send_response_seen": True},
+            False,
+            True,
+            "detail",
+        )
+        category = tasks.classify_browser_failure("send_flow", RuntimeError(error))
+
+        self.assertEqual("send_unconfirmed", category)
+        self.assertFalse(tasks._is_account_level_failure_category(category))
+
     def test_overlapping_task_run_is_skipped_without_traceback(self):
         config = {
             "multiTask": False,

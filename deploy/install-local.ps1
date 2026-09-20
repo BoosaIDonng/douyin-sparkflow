@@ -125,9 +125,9 @@ if (-not (Test-Path "proxy/config.yaml")) {
 }
 if (-not (Test-Path "state/cron/root") -or (Get-Item "state/cron/root").Length -eq 0) {
     @(
-        "*/20 10-17 * * * cd /app && python main.py --doTask >> /app/logs/app.log 2>&1",
-        "0 18 * * * cd /app && python main.py --doTask >> /app/logs/app.log 2>&1",
-        "20 18 * * * cd /app && env SPARKFLOW_MANUAL_RUN=1 SPARKFLOW_MANUAL_UNSENT_ONLY=1 PYTHONUNBUFFERED=1 python main.py --doTask >> /app/logs/app.log 2>&1"
+        "*/20 10-17 * * * cd /app && python main.py --doTask >> /app/logs/scheduled-task.log 2>&1",
+        "0 18 * * * cd /app && python main.py --doTask >> /app/logs/scheduled-task.log 2>&1",
+        "20 18 * * * cd /app && env SPARKFLOW_MANUAL_RUN=1 SPARKFLOW_MANUAL_UNSENT_ONLY=1 PYTHONUNBUFFERED=1 python main.py --doTask >> /app/logs/scheduled-task.log 2>&1"
     ) | Set-Content -Path "state/cron/root" -Encoding utf8
 }
 

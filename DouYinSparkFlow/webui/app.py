@@ -915,41 +915,15 @@ def create_app():
         if access_error:
             return access_error
 
-        changed = mark_target_unconfirmed(account, target_name)
+        # This button is rendered only for strongly confirmed targets, which the
+        # default guard refuses to reset; the operator is explicitly asking to
+        # distrust that confirmation, so the reset must be forced.
+        changed = mark_target_unconfirmed(account, target_name, force=True)
         if changed:
             save_userData(accounts)
             flash(request, f"已将 {account.get('username', 'Account')} / {target_name} 标记为待核验/待补发。", "warning")
         else:
-            flash(request, f"{target_name} 已是强确认记录或不是今日记录，未自动重置。", "info")
-        return redirect("/ops/send-console")
-
-    @app.post("/ops/reset-today-unconfirmed")
-    async def reset_today_unconfirmed(request: Request):
-        maybe_redirect = require_admin(request)
-        if maybe_redirect:
-            return maybe_redirect
-
-        form = await request.form()
-        if not validate_csrf(request, str(form.get("csrf_token", ""))):
-            return Response("Invalid CSRF token", status_code=403)
-
-        accounts = get_userData(force_reload=True)
-        changed_count = 0
-        for account in accounts:
-            for target_name in list(account.get("targets") or []):
-                entry = dict(account.get("message_history") or {}).get(target_name) or {}
-                sent_at = _parse_sent_at(entry.get("sentAt"))
-                if not sent_at or sent_at.date() != datetime.now(_schedule_timezone()).date():
-                    continue
-                if _history_entry_strong_confirmed_today(entry):
-                    continue
-                if mark_target_unconfirmed(account, target_name, reason="batch_reset_today_suspicious_success"):
-                    changed_count += 1
-        if changed_count:
-            save_userData(accounts)
-            flash(request, f"已将 {changed_count} 条今日可疑成功记录标记为待核验/待补发。", "warning")
-        else:
-            flash(request, "没有找到需要重置的今日可疑成功记录。", "info")
+            flash(request, f"{target_name} 没有可重置的发送记录。", "info")
         return redirect("/ops/send-console")
 
     @app.post("/config")
@@ -1063,7 +1037,7 @@ def create_app():
             return Response("Invalid CSRF token", status_code=403)
 
         refs = principal_account_refs(request)
-        pid = run_task_now(force_all=refs is None, account_refs=refs)
+        pid = run_task_now(account_refs=refs)
         if pid == TASK_ALREADY_RUNNING:
             flash(request, "已有发送任务正在运行，本次补发全部对象没有启动。请等当前任务结束后再试。", "warning")
         elif pid == -1:

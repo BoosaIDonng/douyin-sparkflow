@@ -6,7 +6,7 @@
 
 一个智能化的抖音好友互动管理工具，自动维护好友火花标记，支持多账号管理、定时发送、Web 控制台
 
-[![GitHub stars](https://img.shields.io/github/stars/halfwaystudent/douyin-sparkflow?style=social)](https://github.com/halfwaystudent/douyin-sparkflow)
+[![GitHub stars](https://img.shields.io/github/stars/BoosaIDonng/douyin-sparkflow?style=social)](https://github.com/BoosaIDonng/douyin-sparkflow)
 [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/)
 [![LINUX DO](https://img.shields.io/badge/LINUX%20DO-Discussion-blue)](https://linux.do)
@@ -22,6 +22,8 @@
 > 本项目是非官方的第三方公开源码项目，与抖音及其关联方不存在隶属、授权、赞助、代理或合作关系。
 > 本项目自有代码采用 [PolyForm Noncommercial License 1.0.0](LICENSE)，仅授权非商业用途；未经版权持有人事先书面授权，不得将本项目用于收费服务、商业运营、商业账号管理、营销推广、客户代运营、商业产品集成或其他商业用途。
 > 使用者只能操作本人拥有或已获得明确授权的账号，并须自行遵守抖音用户协议、相关法律法规及账号管理要求。自动化操作可能导致验证、限流、功能限制、账号封禁、登录态失效、数据丢失或其他后果。
+
+> 本仓库由 [BoosaIDonng](https://github.com/BoosaIDonng) 独立维护。安装地址、问题反馈和后续更新均以本仓库为准。
 
 ## 📸 主界面预览
 
@@ -88,7 +90,7 @@
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/halfwaystudent/douyin-sparkflow.git
+git clone https://github.com/BoosaIDonng/douyin-sparkflow.git
 cd douyin-sparkflow
 
 # 2. 创建本地环境变量
@@ -129,7 +131,7 @@ ssh -L 8788:127.0.0.1:8788 <user>@<server-ip>
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/halfwaystudent/douyin-sparkflow.git
+git clone https://github.com/BoosaIDonng/douyin-sparkflow.git
 cd douyin-sparkflow/DouYinSparkFlow
 
 # 2. 安装依赖
@@ -471,7 +473,7 @@ Web 通过 HTTPS 反向代理部署时，可设置 `SPARKFLOW_SESSION_COOKIE_SEC
 
 本项目中的自有代码、文档、截图、图标和其他素材分别按照其适用的许可或权利声明使用。抖音名称、商标、页面内容、用户内容及相关数据的权利归相应权利人所有，本项目不主张取得任何相关权利。
 
-如认为仓库中的特定文件侵犯了您的合法权益，请通过 [GitHub Issues](https://github.com/halfwaystudent/douyin-sparkflow/issues) 提交通知，并提供涉嫌侵权的具体文件路径或内容、权利归属或授权证明、侵权理由及可用于回复的联系方式。请勿在公开 Issue 中提交身份证件、账号凭据或其他敏感材料。维护者将在收到完整通知后进行核查，并根据核查结果采取替换、删除、断开访问或其他适当处理措施。
+如认为仓库中的特定文件侵犯了您的合法权益，请通过 [GitHub Issues](https://github.com/BoosaIDonng/douyin-sparkflow/issues) 提交通知，并提供涉嫌侵权的具体文件路径或内容、权利归属或授权证明、侵权理由及可用于回复的联系方式。请勿在公开 Issue 中提交身份证件、账号凭据或其他敏感材料。维护者将在收到完整通知后进行核查，并根据核查结果采取替换、删除、断开访问或其他适当处理措施。
 
 ---
 
@@ -495,7 +497,7 @@ Web 通过 HTTPS 反向代理部署时，可设置 `SPARKFLOW_SESSION_COOKIE_SEC
 本项目目前作为个人项目维护，暂不接受外部 Pull Request。
 
 如果你有：
-- 🐛 **发现问题** - 欢迎提交 [Issue](https://github.com/halfwaystudent/douyin-sparkflow/issues) 报告 Bug
+- 🐛 **发现问题** - 欢迎提交 [Issue](https://github.com/BoosaIDonng/douyin-sparkflow/issues) 报告 Bug
 - 💡 **功能建议** - 欢迎在 Issue 中提出改进想法
 - 🤔 **使用疑问** - 可以在 [Linux Do 社区](https://linux.do) 或 Issue 中讨论
 
@@ -513,16 +515,16 @@ Web 通过 HTTPS 反向代理部署时，可设置 `SPARKFLOW_SESSION_COOKIE_SEC
 
 ## 🌟 Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=halfwaystudent/douyin-sparkflow&type=Date)](https://star-history.com/#halfwaystudent/douyin-sparkflow&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=BoosaIDonng/douyin-sparkflow&type=Date)](https://star-history.com/#BoosaIDonng/douyin-sparkflow&Date)
 
 ---
 
 ## 🔗 相关链接
 
-- **项目主页**: [GitHub Repository](https://github.com/halfwaystudent/douyin-sparkflow)
+- **项目主页**: [GitHub Repository](https://github.com/BoosaIDonng/douyin-sparkflow)
 - **社区讨论**: [Linux Do 社区](https://linux.do)
 - **使用文档**: [docs/usage.md](docs/usage.md)
-- **问题反馈**: [Issues](https://github.com/halfwaystudent/douyin-sparkflow/issues)
+- **问题反馈**: [Issues](https://github.com/BoosaIDonng/douyin-sparkflow/issues)
 
 ---
 
@@ -530,6 +532,6 @@ Web 通过 HTTPS 反向代理部署时，可设置 `SPARKFLOW_SESSION_COOKIE_SEC
 
 **如果这个项目对你有帮助，请给个 ⭐ Star 支持一下！**
 
-Made with ❤️ by [halfwaystudent](https://github.com/halfwaystudent)
+Made with ❤️ by [BoosaIDonng](https://github.com/BoosaIDonng)
 
 </div>

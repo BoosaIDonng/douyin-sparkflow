@@ -72,6 +72,9 @@ DEFAULT_CONFIG = {
     }
 }
 
+DEFAULT_TASK_LOG_FILE = "/app/logs/scheduled-task.log"
+LEGACY_TASK_LOG_FILE = "/var/log/douyin-sparkflow.log"
+
 DEFAULT_APP_SETTINGS = {
     "admin_username": "admin",
     "admin_password_hash": "",
@@ -81,7 +84,7 @@ DEFAULT_APP_SETTINGS = {
     "ui_host": "0.0.0.0",
     "ui_port": 8787,
     "login_poll_interval_seconds": 1,
-    "ops_log_file": "/var/log/douyin-sparkflow.log",
+    "ops_log_file": DEFAULT_TASK_LOG_FILE,
     "proxy_refresh_script": "/opt/douyin-sparkflow/refresh_proxy.sh",
     "local_login_helper_url": "http://127.0.0.1:18765",
     "login_desktop_api_url": "http://127.0.0.1:18090",
@@ -94,6 +97,17 @@ DEFAULT_APP_SETTINGS = {
     "server_username": "",
     "server_password": "",
 }
+
+
+def _migrate_legacy_task_log_file(settings):
+    """Move the task log onto the volume shared by the web/scheduler/task containers.
+
+    ``/var/log`` is container-local, so scheduled runs written there by the
+    scheduler were invisible to the web console that read the same path.
+    """
+    if str(settings.get("ops_log_file") or "").strip() == LEGACY_TASK_LOG_FILE:
+        settings["ops_log_file"] = DEFAULT_TASK_LOG_FILE
+    return settings
 
 config = None
 userData = None
@@ -290,6 +304,7 @@ def get_app_settings(force_reload=False):
             appSettings["session_secret"] = secrets.token_urlsafe(32)
         if not appSettings.get("compose_root"):
             appSettings["compose_root"] = default_compose_root()
+        _migrate_legacy_task_log_file(appSettings)
         _save_json_file(app_settings_path(), appSettings)
     return deepcopy(appSettings)
 
@@ -301,5 +316,6 @@ def save_app_settings(new_settings):
         appSettings["session_secret"] = secrets.token_urlsafe(32)
     if not appSettings.get("compose_root"):
         appSettings["compose_root"] = default_compose_root()
+    _migrate_legacy_task_log_file(appSettings)
     _save_json_file(app_settings_path(), appSettings)
     return deepcopy(appSettings)

@@ -403,6 +403,6 @@ jinja2>=3.1.0           # 模板引擎
 
 **返回 [项目主页](../README.md)**
 
-Made with ❤️ by [halfwaystudent](https://github.com/halfwaystudent)
+Made with ❤️ by [BoosaIDonng](https://github.com/BoosaIDonng)
 
 </div>
